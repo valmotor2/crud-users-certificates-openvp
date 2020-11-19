@@ -6,3 +6,8 @@ I wanted to have a option for people who are using openvpn client and the compan
 mikrotik as me to connect at server of company.
 
 I didn't want to particapate mysel to create certificate for each users, sing generate client .opevnp
+
+# steps
+
+1. install dependences: npm install
+2. node app.js
