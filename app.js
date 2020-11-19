@@ -1,9 +1,21 @@
 require("dotenv").config();
+const RouterOSClient = require("routeros-client").RouterOSClient;
+const basicFTP = require("basic-ftp");
+
 const express = require("express");
 const app = express();
 const port = 3003;
 
-const RouterOSClient = require("routeros-client").RouterOSClient;
+/**
+ * Enable API and FTP from IP.Services
+ * Don't forget to put a condition to firewall for better safe!
+ */
+const config = {
+  host: process.env.MIKROTIK_HOST,
+  user: process.env.MIKROTIK_USER,
+  password: process.env.MIKROTIK_PASS,
+};
+const api = new RouterOSClient(config);
 
 // @TODO - this is for testing, remove when is the case.
 const testing = require("./testing");
@@ -15,13 +27,8 @@ const testing = require("./testing");
 //   password2: "", // this will be the password of private key certificate
 // };
 
-const api = new RouterOSClient({
-  host: process.env.MIKROTIK_HOST,
-  user: process.env.MIKROTIK_USER,
-  password: process.env.MIKROTIK_PASS,
-});
-
 const PREFIX_PRIVATE_KEY = "pr_";
+
 /**
  * Get list of secrets OVPN
  * @client
@@ -35,6 +42,7 @@ const getListOfOVPN = (client, listToNoDisplay = []) =>
     .then((results) =>
       results.filter((result) => listToNoDisplay.indexOf(result.name) === -1)
     );
+
 /**
  * @TODO, add @privateKey to createClientCertificate
  * Add an client OVPN
@@ -43,7 +51,7 @@ const getListOfOVPN = (client, listToNoDisplay = []) =>
  * @password - string
  * @privateKey - string
  */
-const addOVPN = (client, name, password, privateKey) =>
+const addOVPN = (client, { name, password }) =>
   client.menu("/ppp/secret").add({
     name,
     password,
@@ -56,7 +64,7 @@ const addOVPN = (client, name, password, privateKey) =>
  * @client
  * @name - string and unique
  */
-const removeOVPN = (client, name) =>
+const removeOVPN = (client, { name }) =>
   client.menu("/ppp/secret").remove({
     name,
   });
@@ -66,7 +74,7 @@ const removeOVPN = (client, name) =>
  * @param {*} client
  * @param {*} name - string
  */
-const addCertificate = (client, name) =>
+const addCertificate = (client, { name }) =>
   client.menu("/certificate").add({
     name,
     ["key-usage"]: "tls-client",
@@ -131,19 +139,25 @@ const getAllCertificates = (client, listToNoDisplay = []) =>
  * Before download the certificate, it' need to protected with password, it's not mandatory
  * but to be sure, put it, it's free, just only your processor suffer a little. :)
  * @param {*} client
- * @param {*} { @id - string, @password - string }
+ * @param {*} { @id - string, @password2 - string, @name - string }
  */
 const exportCertificateEmployeeWithPassword = (
   client,
-  { id, password, name }
+  { id, password2, name }
 ) =>
   client.menu("/certificate").exec("export-certificate", {
     id,
-    ["export-passphrase"]: password,
+    ["export-passphrase"]: password2,
     ["file-name"]: `${PREFIX_PRIVATE_KEY}${name}`,
   });
 
-// generate file for openvpn with extension name_of_employee.ovpn
+/**
+ * generate file for openvpn with extension name_of_employee.ovpn
+ * @param {*} client - client from api mikrotik
+ * @param {*} employee - informations about the employee
+ * @param {*} company - information about the company where the employees will connect it
+ * @param {*} optionsConfig - add options in .ovpn file
+ */
 const generateFileOpenVPN = (
   client,
   employee,
@@ -197,6 +211,33 @@ const generateFileOpenVPN = (
   console.log(appendToFile);
 };
 
+/**
+ * I don't have an solutions to get contents certs from API
+ * So, the solutions for now is to read from FTP
+ */
+const getContentsPrivateCerts = async ({ name }) => {
+  const ftp = new basicFTP.Client();
+
+  await ftp.access(config);
+
+  const searchFiles = [
+    `${PREFIX_PRIVATE_KEY}${name}.key`,
+    `${PREFIX_PRIVATE_KEY}${name}.crt`,
+  ];
+
+  const files = await ftp.list();
+  const filesRequested = files.filter(
+    (file) => searchFiles.indexOf(file.name) > -1
+  );
+
+  if (filesRequested.length != 2)
+    throw new Error("We didn't found the certificates required.");
+
+  // @TODO,
+  // read content of files without download them
+};
+
+// @TODO, remove this after we will finish all functions
 const start = async () => {
   try {
     const client = await api.connect();
@@ -210,21 +251,19 @@ const start = async () => {
     // // Create of OVPN
     // const added = await addOVPN(
     //   client,
-    //   "testing",
-    //   "testing",
-    //   "41251424"
+    //   testing,
     // ).catch((err) => console.log(`Error adding a new openVPN client`, err));
     // console.log(`Added:`, added);
 
     // // Delete of OVPN
-    // await removeOVPN(client, "testing").catch((err) =>
+    // await removeOVPN(client, testing).catch((err) =>
     //   console.log("Error deleted: ", err)
     // );
 
     // Add a certificate
     // const addedCertificate = await addCertificaClient(
     //   client,
-    //   testing.name
+    //   testing
     // ).catch((err) => console.log("Error add certificate", err));
     // console.log(addedCertificate);
 
@@ -245,7 +284,7 @@ const start = async () => {
 
     // await generateFileOpenVPN(
     //   client,
-    //   { name: "zzzz", id: "y" },
+    //   testing,
     //   { host: "xxx.xx", port: "yyy" }
     // );
 
@@ -253,6 +292,8 @@ const start = async () => {
     //   ...testing,
     //   password: testing.password2,
     // });
+
+    await getContentsPrivateCerts(testing);
   } catch (err) {
     console.log("Error API: ", err);
   } finally {
