@@ -1,3 +1,4 @@
+require("dotenv").config();
 const express = require("express");
 const app = express();
 const port = 3003;
@@ -5,9 +6,9 @@ const port = 3003;
 const RouterOSClient = require("routeros-client").RouterOSClient;
 
 const api = new RouterOSClient({
-  host: "192.168.0.1",
-  user: "api",
-  password: "bestcall.ro2020",
+  host: process.env.MIKROTIK_HOST,
+  user: process.env.MIKROTIK_USER,
+  password: process.env.MIKROTIK_PASS,
 });
 
 /**
@@ -66,7 +67,7 @@ const signCertificateClient = (client, { id, name }) =>
     ca: "CA",
   });
 
-const revokeCertificateClient = (client, name) =>
+const revokeCertificateClient = (client, { id, name }) =>
   client
     .menu("/certificate")
     .remove({
@@ -77,10 +78,20 @@ const revokeCertificateClient = (client, name) =>
         err.message &&
         err.message.indexOf("issued certificate can only be revoked") > -1
       ) {
-        console.log("errr");
+        return client.menu(
+          "/certificate",
+          exec("revoke", {
+            id: "*10",
+          })
+        );
       }
-      return err;
+      throw err;
     });
+
+const testing = {
+  id: "*10",
+  name: "testing",
+};
 
 const start = async () => {
   try {
@@ -109,21 +120,18 @@ const start = async () => {
     // Add a certificate
     // const addedCertificate = await addCertificaClient(
     //   client,
-    //   "anghel.monica.bestcall"
+    //   testing.name
     // ).catch((err) => console.log("Error add certificate", err));
     // console.log(addedCertificate);
 
     // Sign a certificate
-    // const signed = await signCertificateClient(client, {
-    //   name: "anghel.monica.bestcall",
-    //   id: "*10",
-    // });
+    // const signed = await signCertificateClient(client, testing);
     // console.log(signed);
 
     // Remove a certificate if isn't signed!
-    await revokeCertificateClient(client, "anghel.monica.bestcall");
+    // await revokeCertificateClient(client, testing);
   } catch (err) {
-    console.log("start error", err);
+    console.log("Error API: ", err);
   } finally {
     api.close();
   }
