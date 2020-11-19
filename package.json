@@ -1,0 +1,15 @@
+{
+  "name": "module_cretate_edit_certificate_openvpn",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Valentin G",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.17.1",
+    "routeros-client": "^1.1.1"
+  }
+}
