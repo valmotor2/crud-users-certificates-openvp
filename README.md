@@ -9,5 +9,5 @@ I didn't want to particapate mysel to create certificate for each users, sign al
 
 **steps**
 
-1. install dependences: npm install
+1. install dependencies: npm install
 2. node app.js

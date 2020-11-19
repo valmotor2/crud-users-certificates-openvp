@@ -23,10 +23,7 @@ const getListOfOVPN = (client, listToNoDisplay = []) =>
     .getAll()
     .then((results) =>
       results.filter((result) => listToNoDisplay.indexOf(result.name) === -1)
-    )
-    .catch((err) => {
-      reject(err);
-    });
+    );
 /**
  * @TODO, add @privateKey to createClientCertificate
  * Add an client OVPN
@@ -53,6 +50,11 @@ const removeOVPN = (client, name) =>
     name,
   });
 
+/**
+ * Create a certfificate for a client, but don't sign it
+ * @param {*} client
+ * @param {*} name - string
+ */
 const addCertificaClient = (client, name) =>
   client.menu("/certificate").add({
     name,
@@ -72,6 +74,7 @@ const revokeCertificateClient = (client, { id, name }) =>
     .menu("/certificate")
     .remove({
       name,
+      id,
     })
     .catch((err) => {
       if (
@@ -81,12 +84,20 @@ const revokeCertificateClient = (client, { id, name }) =>
         return client.menu(
           "/certificate",
           exec("revoke", {
-            id: "*10",
+            id,
           })
         );
       }
       throw err;
     });
+
+const getAllCertificates = (client, listToNoDisplay = []) =>
+  client
+    .menu("/certificate")
+    .getAll()
+    .then((results) =>
+      results.filter((result) => listToNoDisplay.indexOf(result.name) === -1)
+    );
 
 const testing = {
   id: "*10",
@@ -130,6 +141,14 @@ const start = async () => {
 
     // Remove a certificate if isn't signed!
     // await revokeCertificateClient(client, testing);
+
+    // Display all certificates
+    // const allCertificates = await getAllCertificates(client, [
+    //   "CA",
+    //   "Server",
+    //   "Client",
+    // ]);
+    // console.log(allCertificates);
   } catch (err) {
     console.log("Error API: ", err);
   } finally {
