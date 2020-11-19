@@ -6,10 +6,14 @@ const port = 3003;
 const RouterOSClient = require("routeros-client").RouterOSClient;
 
 // @TODO - this is for testing, remove when is the case.
-const testing = {
-  id: "*10",
-  name: "testing",
-};
+const testing = require("./testing");
+
+// const mokup = {
+//   id: "", // after created an profile, you will have an id
+//   name: "", // name, must be unique and no spaces, just letters and dots
+//   password: "", // this will be password of user
+//   password2: "", // this will be the password of private key certificate
+// };
 
 const api = new RouterOSClient({
   host: process.env.MIKROTIK_HOST,
@@ -17,6 +21,7 @@ const api = new RouterOSClient({
   password: process.env.MIKROTIK_PASS,
 });
 
+const PREFIX_PRIVATE_KEY = "pr_";
 /**
  * Get list of secrets OVPN
  * @client
@@ -128,7 +133,15 @@ const getAllCertificates = (client, listToNoDisplay = []) =>
  * @param {*} client
  * @param {*} { @id - string, @password - string }
  */
-const exportCertificateEmployeeWithPassword = (client, { id, password }) => {};
+const exportCertificateEmployeeWithPassword = (
+  client,
+  { id, password, name }
+) =>
+  client.menu("/certificate").exec("export-certificate", {
+    id,
+    ["export-passphrase"]: password,
+    ["file-name"]: `${PREFIX_PRIVATE_KEY}${name}`,
+  });
 
 // generate file for openvpn with extension name_of_employee.ovpn
 const generateFileOpenVPN = (
@@ -235,6 +248,11 @@ const start = async () => {
     //   { name: "zzzz", id: "y" },
     //   { host: "xxx.xx", port: "yyy" }
     // );
+
+    // await exportCertificateEmployeeWithPassword(client, {
+    //   ...testing,
+    //   password: testing.password2,
+    // });
   } catch (err) {
     console.log("Error API: ", err);
   } finally {
