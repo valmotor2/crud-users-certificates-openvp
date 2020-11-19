@@ -5,6 +5,12 @@ const port = 3003;
 
 const RouterOSClient = require("routeros-client").RouterOSClient;
 
+// @TODO - this is for testing, remove when is the case.
+const testing = {
+  id: "*10",
+  name: "testing",
+};
+
 const api = new RouterOSClient({
   host: process.env.MIKROTIK_HOST,
   user: process.env.MIKROTIK_USER,
@@ -41,7 +47,7 @@ const addOVPN = (client, name, password, privateKey) =>
   });
 
 /**
- * @TODO, remove certificate of client
+ * @TODO, remove certificate of employee
  * @client
  * @name - string and unique
  */
@@ -51,25 +57,36 @@ const removeOVPN = (client, name) =>
   });
 
 /**
- * Create a certfificate for a client, but don't sign it
+ * Create a certfificate for a employee, but don't sign it
  * @param {*} client
  * @param {*} name - string
  */
-const addCertificaClient = (client, name) =>
+const addCertificate = (client, name) =>
   client.menu("/certificate").add({
     name,
     ["key-usage"]: "tls-client",
     ["common-name"]: name,
   });
 
-const signCertificateClient = (client, { id, name }) =>
+/**
+ * Sign the certificate for a employee
+ * @param {*} client
+ * @param {*} param1
+ */
+const signCertificate = (client, { id, name }) =>
   client.menu("/certificate").exec(`sign`, {
     id: id,
     name: name,
     ca: "CA",
   });
 
-const revokeCertificateClient = (client, { id, name }) =>
+/**
+ * If a certificate is already signed, will be only revoked util the CA certificate will be deleted
+ * Don't do this if you aren't sure what is this.
+ * @param {*} client
+ * @param {*} param1
+ */
+const revokeCertificate = (client, { id, name }) =>
   client
     .menu("/certificate")
     .remove({
@@ -91,6 +108,12 @@ const revokeCertificateClient = (client, { id, name }) =>
       throw err;
     });
 
+/**
+ * List all certificates created for employee
+ * We have a secondary parameter whici will not display some certificates
+ * @param {*} client
+ * @param {*} listToNoDisplay
+ */
 const getAllCertificates = (client, listToNoDisplay = []) =>
   client
     .menu("/certificate")
@@ -99,9 +122,66 @@ const getAllCertificates = (client, listToNoDisplay = []) =>
       results.filter((result) => listToNoDisplay.indexOf(result.name) === -1)
     );
 
-const testing = {
-  id: "*10",
-  name: "testing",
+/**
+ * Before download the certificate, it' need to protected with password, it's not mandatory
+ * but to be sure, put it, it's free, just only your processor suffer a little. :)
+ * @param {*} client
+ * @param {*} { @id - string, @password - string }
+ */
+const exportCertificateEmployeeWithPassword = (client, { id, password }) => {};
+
+// generate file for openvpn with extension name_of_employee.ovpn
+const generateFileOpenVPN = (
+  client,
+  employee,
+  company,
+  optionsConfig = [
+    "route 192.168.0.5 255.255.255.255",
+    "route 192.168.0.1 255.255.255.255",
+    'pull-filter ignore "route-gateway"',
+  ]
+) => {
+  const appendToFile = [
+    "client",
+    "dev tun",
+    "proto tcp-client",
+    `remote ${company.host}`,
+    `port ${company.port}`,
+    "resolv-retry infinite",
+    "nobind",
+    "persist-key",
+    "persist-tun",
+    "remote-cert-tls server",
+    "cipher AES-256-CBC",
+    "auth SHA1",
+    "verb 3",
+    "pull",
+    "auth-user-pass",
+    "keepalive 600 1800",
+    ...optionsConfig,
+  ];
+
+  const ca = `
+<ca>
+</ca>
+`;
+
+  const cert = `
+<cert>
+</cert>
+`;
+
+  const key = `
+<key>
+</key>
+`;
+
+  appendToFile.push(ca);
+  appendToFile.push(cert);
+  appendToFile.push(key);
+
+  // generate file and download it
+  console.log(appendToFile);
 };
 
 const start = async () => {
@@ -149,6 +229,12 @@ const start = async () => {
     //   "Client",
     // ]);
     // console.log(allCertificates);
+
+    // await generateFileOpenVPN(
+    //   client,
+    //   { name: "zzzz", id: "y" },
+    //   { host: "xxx.xx", port: "yyy" }
+    // );
   } catch (err) {
     console.log("Error API: ", err);
   } finally {
