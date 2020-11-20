@@ -8,6 +8,7 @@ const cors = require("cors");
 
 const routers = require("./modules/mikrotik/routers");
 
+app.use(express.json());
 /** Here you can put some conditions, cors, limits , etc ... */
 app.use("/", cors(), routers);
 

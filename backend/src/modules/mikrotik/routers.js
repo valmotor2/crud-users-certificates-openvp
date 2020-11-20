@@ -61,23 +61,51 @@ router.get("/ovpns", async (req, res) => {
 
 /**
  * Get ovpn of employee by id
+ * Will not be used, it's not necessary, we keep simple
  * @id - string
  */
 router.get("/ovpns/:id", (req, res) => {
-  const list = [];
   res.json({
-    ...list,
+    message: "Unused",
   });
 });
 
 /**
  * Create an ovpn for an employee
  */
-router.post("/ovpn", (req, res) => {
-  const list = [];
-  res.json({
-    ...list,
-  });
+router.post("/ovpn", async (req, res) => {
+  const { body } = req;
+
+  // make simple checking
+  const { name, password, password2 } = body;
+  if (!name || !password || !password2) {
+    return res.status(400).json({
+      message: "Campurile nu sunt completate.",
+    });
+  }
+
+  try {
+    const mik = new Mikrotik();
+    await mik.connect();
+
+    // check if this already exists!
+    list = await mik.getAllCertificates(["CA", "Server", "Client"]);
+
+    const alreadyExists = list.filter((each) => each.name === name);
+    if (alreadyExists.length > 0) {
+      return res.status(400).json({
+        message: `Numele: ${name} exista deja, va rugam incercati altul.`,
+      });
+    }
+
+    const added = await mik.addOVPN({ name, password });
+    await mik.close();
+    return res.json({ added });
+  } catch (err) {
+    return res.status(404).json({
+      message: err.message,
+    });
+  }
 });
 
 /**
