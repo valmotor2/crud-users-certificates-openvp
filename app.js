@@ -1,10 +1,7 @@
 require("dotenv").config();
 const RouterOSClient = require("routeros-client").RouterOSClient;
 const basicFTP = require("basic-ftp");
-
-const express = require("express");
-const app = express();
-const port = 3003;
+const fs = require("fs");
 
 /**
  * Enable API and FTP from IP.Services
@@ -158,7 +155,7 @@ const exportCertificateEmployeeWithPassword = (
  * @param {*} company - information about the company where the employees will connect it
  * @param {*} optionsConfig - add options in .ovpn file
  */
-const generateFileOpenVPN = (
+const generateFileOpenVPN = async (
   client,
   employee,
   company,
@@ -188,18 +185,45 @@ const generateFileOpenVPN = (
     ...optionsConfig,
   ];
 
+  const files = await getPrivateCerts(employee, company.ca);
+
+  let contentOfFiles = {
+    ca: "",
+    crt: "",
+    key: "",
+  };
+
+  for (let file of files) {
+    const content = fs.readFileSync(file, "utf-8");
+
+    if (file.includes(company.ca)) {
+      contentOfFiles["ca"] = content;
+    } else {
+      const ext = file.substr(file.lastIndexOf(".") + 1);
+
+      if (ext === "crt") {
+        contentOfFiles["crt"] = content;
+      } else if (ext === "key") {
+        contentOfFiles["key"] = content;
+      }
+    }
+  }
+
   const ca = `
 <ca>
+${contentOfFiles.ca}
 </ca>
 `;
 
   const cert = `
 <cert>
+${contentOfFiles.crt}
 </cert>
 `;
 
   const key = `
 <key>
+${contentOfFiles.key}
 </key>
 `;
 
@@ -207,15 +231,21 @@ const generateFileOpenVPN = (
   appendToFile.push(cert);
   appendToFile.push(key);
 
-  // generate file and download it
-  console.log(appendToFile);
+  let fileForDownload = `${process.env.DIR}ovpn/${employee.name}.ovpn`;
+  fs.writeFileSync(fileForDownload, appendToFile.join("\n"));
+
+  return fileForDownload;
 };
 
 /**
+ * { @name: string of employee, unique}
+ * @ca - certificate
  * I don't have an solutions to get contents certs from API
  * So, the solutions for now is to read from FTP
  */
-const getContentsPrivateCerts = async ({ name }) => {
+const getPrivateCerts = async ({ name }, ca = "CA.key") => {
+  const dir = process.env.DIR;
+
   const ftp = new basicFTP.Client();
 
   await ftp.access(config);
@@ -223,6 +253,7 @@ const getContentsPrivateCerts = async ({ name }) => {
   const searchFiles = [
     `${PREFIX_PRIVATE_KEY}${name}.key`,
     `${PREFIX_PRIVATE_KEY}${name}.crt`,
+    `${ca}`,
   ];
 
   const files = await ftp.list();
@@ -230,11 +261,23 @@ const getContentsPrivateCerts = async ({ name }) => {
     (file) => searchFiles.indexOf(file.name) > -1
   );
 
-  if (filesRequested.length != 2)
-    throw new Error("We didn't found the certificates required.");
+  // if (filesRequested.length != 3)
+  //   throw new Error("We didn't found the certificates required.");
 
-  // @TODO,
-  // read content of files without download them
+  const filesDownloaded = [];
+  for (let i = 0; i < filesRequested.length; i++) {
+    const file = filesRequested[i];
+    const to = `${dir}${file.name}`;
+    await ftp.downloadTo(to, file.name);
+    filesDownloaded.push(to);
+    // clean on mikrotik router the files generated for employee
+    // we have already in certificates, it's not necessary to have in files of mikrotik
+    // with exception of CA
+    // @TODO, on future, maybe we generate also CA and delete it after.
+    if (file.name !== ca) await ftp.remove(file.name);
+  }
+
+  return filesDownloaded;
 };
 
 // @TODO, remove this after we will finish all functions
@@ -282,18 +325,13 @@ const start = async () => {
     // ]);
     // console.log(allCertificates);
 
-    // await generateFileOpenVPN(
-    //   client,
-    //   testing,
-    //   { host: "xxx.xx", port: "yyy" }
-    // );
+    await generateFileOpenVPN(client, testing, {
+      host: "xxx.xx",
+      port: "yyy",
+      ca: "cert_export_CA.crt",
+    });
 
-    // await exportCertificateEmployeeWithPassword(client, {
-    //   ...testing,
-    //   password: testing.password2,
-    // });
-
-    await getContentsPrivateCerts(testing);
+    //await getPrivateCerts(testing, "cert_export_CA.crt");
   } catch (err) {
     console.log("Error API: ", err);
   } finally {
