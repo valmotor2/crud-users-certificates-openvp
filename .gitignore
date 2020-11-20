@@ -1,5 +1,6 @@
-/node_modules
-/downloads/ovpn/*
-/downloads/*
-.env
-testing.js
+/backend/node_modules
+/backend/downloads/ovpn/*
+/backend/downloads/*
+/backend/.env
+/backend/testing.js
+/frontend/node_modules
