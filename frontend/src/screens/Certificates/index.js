@@ -13,6 +13,7 @@ const ListCertificates = ({
   signCertificate,
   loading,
 }) => {
+  console.log(list);
   return (
     <Table striped bordered hover variant="dark">
       <thead>
@@ -32,23 +33,26 @@ const ListCertificates = ({
             <td>{each.name}</td>
             <td>{each.invalidAfter}</td>
             <td style={{ textAlign: "center" }}>
-              <Button
-                size="sm"
-                disabled={loading}
-                style={{ marginRight: 5 }}
-                onClick={() => downloadOvpn(each)}
-              >
-                Descarca .ovpn
-              </Button>
-              <Button
-                size="sm"
-                disabled={loading}
-                style={{ marginRight: 5 }}
-                onClick={() => signCertificate(each)}
-              >
-                Semneaza certificatul
-              </Button>
-
+              {each.fingerprint ? (
+                <Button
+                  size="sm"
+                  disabled={loading}
+                  style={{ marginRight: 5 }}
+                  onClick={() => downloadOvpn(each)}
+                >
+                  Descarca .ovpn
+                </Button>
+              ) : (
+                <Button
+                  size="sm"
+                  disabled={loading}
+                  style={{ marginRight: 5 }}
+                  variant="info"
+                  onClick={() => signCertificate(each)}
+                >
+                  Semneaza certificatul
+                </Button>
+              )}
               <Button
                 size="sm"
                 disabled={loading}

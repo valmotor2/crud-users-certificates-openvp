@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Row, Col, Button, Table } from "react-bootstrap";
+import { Row, Col, Button, Table, Alert } from "react-bootstrap";
 import Loading from "../../components/Loading";
 import axios from "axios";
 import { URL_HOST } from "../../config";
@@ -105,6 +105,23 @@ const Employees = () => {
         <Link to="/certificates" className="btn btn-primary my-2">
           Certificate
         </Link>
+        <Alert variant="info">
+          <h3>Cum se foloseste?</h3>
+          <p>
+            Se creaza un profil cu user si parola, dupa crearea profilului se
+            genereaza automat un certificat. <br /> Se cauta certificatul creat
+            in lista de certificate, se semneaza prima data. Durata de semnare a
+            certificatului poate dura si 1 minut, se asteapta si se face un
+            refresh la pagina. Va aparea un buton "Descarca .ovpn". <br />
+            Daca este prima data, se cere o parola pentru criptarea fisierului
+            si cateva date, aceste date sunt auto-completate, pentru mai multe
+            informatii legate de aceste date, folositi documentatia de la OPEN
+            VPN. <br />
+            Dupa validarea datelor incepe procesul de descare fisier
+            **nume**.opvn cu care se importa in aplicatia Open VPN Connect /
+            Client.
+          </p>
+        </Alert>
         <ListEmployee list={list} deleteProfile={deleteProfile} />
       </Col>
     </Row>
