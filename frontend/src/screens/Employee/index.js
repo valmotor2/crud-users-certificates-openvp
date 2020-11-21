@@ -9,7 +9,6 @@ import { URL_HOST } from "../../config";
 const INIT_EMPLOYEE = {
   name: "",
   password: "",
-  password2: "",
 };
 
 const Employee = () => {
@@ -28,12 +27,6 @@ const Employee = () => {
       );
     employee.password.length < 10 &&
       errors.push("Completati parola cu cel putin 10 caractere.");
-    employee.password2.length !== 8 &&
-      errors.push(
-        "Parola 2 trebuie sa fie de 8 caracatere si sa includa doar cifre."
-      );
-    /^[0-9.]+$/.test(employee.password2) === false &&
-      errors.push("Folositi doar cifre la parola secundara.");
 
     return errors;
   };
@@ -105,20 +98,6 @@ const Employee = () => {
         </Form.Text>
       </Form.Group>
 
-      <Form.Group controlId="formBasicPassword">
-        <Form.Label>Parola 2</Form.Label>
-        <Form.Control
-          type="password"
-          value={employee.password2}
-          placeholder="Introduceti parola"
-          onChange={(ev) => receivedFromInput(ev.target.value, "password2")}
-        />
-        <Form.Text className="text-muted">
-          Acesta va fi parola pentru decodarea fisierului care permite conectare
-          la VPN
-        </Form.Text>
-      </Form.Group>
-
       <Button
         variant="primary"
         disabled={loading}
@@ -130,7 +109,7 @@ const Employee = () => {
       </Button>
 
       <Link to="/" className="btn btn-danger">
-        Renunta
+        Inapoi la profile
       </Link>
     </Form>
   );

@@ -78,15 +78,23 @@ const Employees = () => {
       cancelButtonText: "Nu, renunta!",
     }).then((result) => {
       if (result.value) {
-        Swal.fire(
-          "Deleted!",
-          "Your imaginary file has been deleted.",
-          "success"
-        );
+        axios
+          .delete(`${URL_HOST}/ovpn/${profile.id}`)
+          .then(() => {
+            // remove from lists
+            setList(list.filter((each) => each.id !== profile.id));
+            Swal.fire(
+              "Profilu sters!",
+              "Profilul si certificatul a fost sters /revocat.",
+              "success"
+            );
+          })
+          .catch(() =>
+            Swal.fire("Eroare!", "Profilul nu a putut fi sters.", "error")
+          )
+          .finally(() => setLoading(false));
       }
     });
-
-    console.log(`Delete:`, profile);
   };
 
   if (loading) return <Loading />;

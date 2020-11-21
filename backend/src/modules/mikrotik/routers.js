@@ -2,6 +2,11 @@ const Router = require("express").Router;
 const Mikrotik = require("./Mikrotik");
 const router = Router();
 
+const EXCLUDE_CERTIFICATE_FOR_DISPLAY =
+  process.env.EXCLUDE_CERTIFICATE_FOR_DISPLAY?.split(",") || [];
+const EXCLUDE_PROFILES_FOR_DISPLAY =
+  process.env.EXCLUDE_PROFILES_FOR_DISPLAY?.split(",") || [];
+
 /**
  * List all certs
  */
@@ -10,7 +15,7 @@ router.get("/certificates", async (req, res) => {
   try {
     const mik = new Mikrotik();
     await mik.connect();
-    list = await mik.getAllCertificates(["CA", "Server", "Client"]);
+    list = await mik.getAllCertificates(EXCLUDE_CERTIFICATE_FOR_DISPLAY);
     await mik.close();
     return res.json({ certificates: list });
   } catch (err) {
@@ -21,12 +26,22 @@ router.get("/certificates", async (req, res) => {
 });
 
 /**
- * Create a cert
+ * Sing the certificate if isn't.
  */
-router.post("/certificates", (res, req) => {
-  const list = [];
-  res.json({
-    ...list,
+router.put("/certificates/sign", async (req, res) => {
+  return res.json({
+    message: "TODO",
+  });
+});
+
+/**
+ * Download certificate
+ * @id - string
+ * @todo
+ */
+router.get("/certificates/downloads/:id", (req, res) => {
+  res.status(400).json({
+    ...req.parmas,
   });
 });
 
@@ -50,7 +65,7 @@ router.get("/ovpns", async (req, res) => {
   try {
     const mik = new Mikrotik();
     await mik.connect();
-    list = await mik.getListOfOVPN(["it.bestcall.ro"]);
+    list = await mik.getListOfOVPN(EXCLUDE_PROFILES_FOR_DISPLAY);
     await mik.close();
     return res.json({ employee: list });
   } catch (err) {
@@ -78,8 +93,8 @@ router.post("/ovpn", async (req, res) => {
   const { body } = req;
 
   // make simple checking
-  const { name, password, password2 } = body;
-  if (!name || !password || !password2) {
+  const { name, password } = body;
+  if (!name || !password) {
     return res.status(400).json({
       message: "Campurile nu sunt completate.",
     });
@@ -88,22 +103,37 @@ router.post("/ovpn", async (req, res) => {
   try {
     const mik = new Mikrotik();
     await mik.connect();
-
     // check if this already exists!
-    list = await mik.getAllCertificates(["CA", "Server", "Client"]);
-
-    const alreadyExists = list.filter((each) => each.name === name);
-    if (alreadyExists.length > 0) {
+    const existCertificate = await mik.searchCertificate(
+      name,
+      EXCLUDE_CERTIFICATE_FOR_DISPLAY
+    );
+    if (existCertificate) {
       return res.status(400).json({
-        message: `Numele: ${name} exista deja, va rugam incercati altul.`,
+        message: `Numele: ${name} exista deja la certificate, va rugam incercati altul.`,
+      });
+    }
+
+    const existProfil = await mik.searchProfile(
+      name,
+      EXCLUDE_PROFILES_FOR_DISPLAY
+    );
+    if (existProfil) {
+      return res.status(400).json({
+        message: `Numele: ${name} exista deja la certificate, va rugam incercati altul.`,
       });
     }
 
     const added = await mik.addOVPN({ name, password });
+
+    // after created
+    await mik.addCertificate(added);
+
     await mik.close();
     return res.json({ added });
   } catch (err) {
-    return res.status(404).json({
+    console.log(err);
+    return res.status(400).json({
       message: err.message,
     });
   }
@@ -112,11 +142,34 @@ router.post("/ovpn", async (req, res) => {
 /**
  * @todo this is not used, I think
  */
-router.delete("/ovpn/:id", (req, res) => {
-  const list = [];
-  res.json({
-    ...list,
-  });
+router.delete("/ovpn/:id", async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const mik = new Mikrotik();
+    await mik.connect();
+    const profile = await mik.searchProfileById(
+      id,
+      EXCLUDE_PROFILES_FOR_DISPLAY
+    );
+
+    const certificate = await mik.searchCertificate(
+      profile.name,
+      EXCLUDE_CERTIFICATE_FOR_DISPLAY
+    );
+
+    if (certificate) {
+      // revoke it !
+      await mik.revokeCertificate(certificate);
+    }
+    await mik.removeOVPN(profile);
+    await mik.close();
+    return res.json({ message: "deleted" });
+  } catch (err) {
+    return res.status(404).json({
+      message: err,
+    });
+  }
 });
 
 module.exports = router;

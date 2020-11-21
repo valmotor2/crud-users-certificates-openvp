@@ -283,6 +283,29 @@ ${contentOfFiles.key}
 
     return filesDownloaded;
   };
+
+  /**
+   * Search in the list of profiles and filter
+   * @param name - string
+   */
+  searchProfile = async (name, exclude = []) => {
+    const list = await this.getListOfOVPN(exclude);
+    const alreadyProfil = list.filter((each) => each.name === name);
+    return alreadyProfil.length ? alreadyProfil[0] : null;
+  };
+
+  searchProfileById = async (id, exclude = []) => {
+    const list = await this.getListOfOVPN(exclude);
+    const alreadyProfil = list.filter((each) => each.id === id);
+    return alreadyProfil.length ? alreadyProfil[0] : null;
+  };
+
+  searchCertificate = async (name, exclude = []) => {
+    const list = await this.getAllCertificates(exclude);
+    const alreadyCertificate = list.filter((each) => each.name === name);
+
+    return alreadyCertificate.length ? alreadyCertificate[0] : null;
+  };
 }
 
 module.exports = Mikrotik;
