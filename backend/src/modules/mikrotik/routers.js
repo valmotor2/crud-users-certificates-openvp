@@ -35,9 +35,10 @@ router.post("/certificates", (res, req) => {
  * @id - string
  */
 router.delete("/certificates/:id", (res, req) => {
-  const list = [];
-  res.json({
-    ...list,
+  const { id = "*0" } = res.parmas;
+
+  req.json({
+    id,
   });
 });
 

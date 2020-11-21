@@ -4,8 +4,9 @@ import Loading from "../../components/Loading";
 import axios from "axios";
 import { URL_HOST } from "../../config";
 import { Link } from "react-router-dom";
+import Swal from "sweetalert2";
 
-const ListEmployee = ({ list }) => {
+const ListEmployee = ({ list, deleteProfile }) => {
   return (
     <Table striped bordered hover variant="dark">
       <thead>
@@ -28,20 +29,16 @@ const ListEmployee = ({ list }) => {
           <tr key={`ovpn-list-${each.id}`}>
             <td>{each.id}</td>
             <td>{each.name}</td>
-            <td>{each.lastLoggedOut}</td>
+            <td>
+              {each.lastLoggedOut === "jan/01/1970 00:00:00"
+                ? "-"
+                : each.lastLoggedOut}
+            </td>
             <td style={{ textAlign: "center" }}>
               <Button
                 size="sm"
-                style={{ margin: 5 }}
-                onKeyPress={() => console.log("presed")}
-              >
-                Descarca .ovpn
-              </Button>
-
-              <Button
-                size="sm"
                 style={{ marginRight: 5 }}
-                onKeyPress={() => console.log("presed")}
+                onClick={() => deleteProfile(each)}
                 variant="danger"
               >
                 Sterge
@@ -70,12 +67,37 @@ const Employees = () => {
     loadAll();
   }, []);
 
+  const deleteProfile = (profile) => {
+    Swal.fire({
+      title: "Sunteti sigur?",
+      text:
+        "Stergerea profilui va duce si la revokarea certificatul deja semnat daca acesta exista.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Da, sterge-l!",
+      cancelButtonText: "Nu, renunta!",
+    }).then((result) => {
+      if (result.value) {
+        Swal.fire(
+          "Deleted!",
+          "Your imaginary file has been deleted.",
+          "success"
+        );
+      }
+    });
+
+    console.log(`Delete:`, profile);
+  };
+
   if (loading) return <Loading />;
 
   return (
     <Row>
       <Col md={12}>
-        <ListEmployee list={list} />
+        <Link to="/certificates" className="btn btn-primary my-2">
+          Certificate
+        </Link>
+        <ListEmployee list={list} deleteProfile={deleteProfile} />
       </Col>
     </Row>
   );

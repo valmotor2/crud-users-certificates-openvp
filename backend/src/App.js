@@ -20,8 +20,9 @@ app.use((req, res, next) => {
 });
 
 app.use((err, req, res, next) => {
+  console.log(`Error: `, err);
   return res.status(500).json({
-    code,
+    code: 500,
     message: err.message || err,
   });
 });

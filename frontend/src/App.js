@@ -7,6 +7,7 @@ import { BrowserRouter as Router, Switch, Route } from "react-router-dom";
 
 import Employees from "./screens/Employees";
 import Employee from "./screens/Employee";
+import Certificates from "./screens/Certificates";
 
 function App() {
   return (
@@ -18,6 +19,10 @@ function App() {
           </Route>
           <Route path="/ovpn/add">
             <Employee />
+          </Route>
+
+          <Route path="/certificates">
+            <Certificates />
           </Route>
         </Switch>
       </Container>
