@@ -1,6 +1,6 @@
 {
-  "short_name": "React App",
-  "name": "Create React App Sample",
+  "short_name": "Mini APP VPN",
+  "name": "A module demo for VPN",
   "icons": [
     {
       "src": "favicon.ico",
