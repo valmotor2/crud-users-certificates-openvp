@@ -6,14 +6,7 @@ import { Link } from "react-router-dom";
 import { Button, Col, Table, Row, Alert } from "react-bootstrap";
 import Swal from "sweetalert2";
 
-const ListCertificates = ({
-  list,
-  revoke,
-  downloadOvpn,
-  signCertificate,
-  loading,
-}) => {
-  console.log(list);
+const ListCertificates = ({ list, revoke, signCertificate, loading }) => {
   return (
     <Table striped bordered hover variant="dark">
       <thead>
@@ -34,14 +27,13 @@ const ListCertificates = ({
             <td>{each.invalidAfter}</td>
             <td style={{ textAlign: "center" }}>
               {each.fingerprint ? (
-                <Button
-                  size="sm"
-                  disabled={loading}
+                <Link
+                  to={`/certificates/${each.id}`}
+                  className="btn btn-primary"
                   style={{ marginRight: 5 }}
-                  onClick={() => downloadOvpn(each)}
                 >
-                  Descarca .ovpn
-                </Button>
+                  Genereaza .ovpn
+                </Link>
               ) : (
                 <Button
                   size="sm"
@@ -74,15 +66,16 @@ const Certificates = () => {
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadingConfig, setLoadingConfig] = useState(false);
-  useEffect(() => {
-    const loadAll = async () => {
-      axios
-        .get(`${URL_HOST}/certificates`)
-        .then(({ data: { certificates } }) => setList(certificates))
-        .catch((err) => console.error(err))
-        .finally(() => setLoading(false));
-    };
 
+  const loadAll = async () => {
+    axios
+      .get(`${URL_HOST}/certificates`)
+      .then(({ data: { certificates } }) => setList(certificates))
+      .catch((err) => console.error(err))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
     loadAll();
   }, []);
 
@@ -117,7 +110,7 @@ const Certificates = () => {
 
   const signCertificate = (certificate) => {
     Swal.fire({
-      title: "Sunteti sigur?",
+      title: "Atentie, poate dura pana la 1 minut.",
       text: `Semnarea certificatului ii da dreptul de conectare prin VPN
         dar stergerea ulterioara nu mai este posibila decat revocare.`,
       icon: "warning",
@@ -128,48 +121,19 @@ const Certificates = () => {
       if (result.value) {
         setLoadingConfig(true);
         axios
-          .post(`${URL_HOST}/certificates`, {
+          .post(`${URL_HOST}/certificates/sign`, {
             ...certificate,
           })
-          .then(() =>
-            Swal.fire(
-              "Succes!",
-              "Certificatul este in proces de semnatura, dati refresh la pagina in 10-20 secunde.",
-              "success"
-            )
-          )
+          .then(() => {
+            Swal.fire("Succes!", "Certificatul a fost semnat.", "success");
+            loadAll();
+          })
           .catch(() => {
-            Swal.fire("Error!", "Nu s-a putut semna certifactul.", "error");
+            Swal.fire("Error!", "Nu s-a putut semna certificatul.", "error");
           })
           .finally(() => setLoadingConfig(false));
       }
     });
-  };
-
-  const downloadOvpn = (certificate) => {
-    const url = `${URL_HOST}/certificates/downloads/${certificate.id}`;
-    axios
-      .get({
-        url,
-        method: "GET",
-        responseType: "blob",
-      })
-      .then(({ data }) => {
-        const url = window.URL.createObjectURL(new Blob([data]));
-        const link = document.createElement("a");
-        link.href = url;
-        link.style = { display: "none" };
-        link.setAttribute("download", `${certificate.name}.ovpn`);
-        document.body.appendChild(link);
-        link.click();
-      })
-      .catch(() =>
-        Swal.fire(
-          "Eroare descarcare!",
-          "Certificatul nu a putut fi descarcat.",
-          "error"
-        )
-      );
   };
 
   if (loading) return <Loading />;
@@ -195,7 +159,6 @@ const Certificates = () => {
         <ListCertificates
           list={list}
           revoke={revoke}
-          downloadOvpn={downloadOvpn}
           signCertificate={signCertificate}
           loading={loadingConfig}
         />

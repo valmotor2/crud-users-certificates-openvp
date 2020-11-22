@@ -1,5 +1,7 @@
 const Router = require("express").Router;
 const Mikrotik = require("./Mikrotik");
+
+const fs = require("fs");
 const router = Router();
 
 const EXCLUDE_CERTIFICATE_FOR_DISPLAY =
@@ -26,12 +28,55 @@ router.get("/certificates", async (req, res) => {
 });
 
 /**
+ * Get certificate by ID
+ * @id - string
+ */
+router.get("/certificates/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const mik = new Mikrotik();
+    await mik.connect();
+    certificate = await mik.searchCertificateById(
+      id,
+      EXCLUDE_CERTIFICATE_FOR_DISPLAY
+    );
+    await mik.close();
+    return res.json({ certificate });
+  } catch (err) {
+    console.log(err);
+    return res.status(404).json({
+      message: "Certificatul nu a fost gasit.",
+    });
+  }
+});
+
+/**
  * Sing the certificate if isn't.
  */
-router.put("/certificates/sign", async (req, res) => {
-  return res.json({
-    message: "TODO",
-  });
+router.post("/certificates/sign", async (req, res) => {
+  try {
+    const mik = new Mikrotik();
+    await mik.connect();
+
+    const { name = "" } = req.body;
+    const exist = await mik.searchCertificate(
+      name,
+      EXCLUDE_CERTIFICATE_FOR_DISPLAY
+    );
+    if (!exist) {
+      return res.status(404).json({
+        message: "Nu exista acest certificat.",
+      });
+    }
+    list = await mik.signCertificate(exist);
+    await mik.close();
+    return res.json({ certificates: list });
+  } catch (err) {
+    console.log("error", err);
+    return res.status(404).json({
+      message: "Nu exista acest certificat.",
+    });
+  }
 });
 
 /**
@@ -39,10 +84,71 @@ router.put("/certificates/sign", async (req, res) => {
  * @id - string
  * @todo
  */
-router.get("/certificates/downloads/:id", (req, res) => {
-  res.status(400).json({
-    ...req.parmas,
-  });
+router.post("/certificates/downloads", async (req, res) => {
+  const { certificate: certificatBody, password } = req.body;
+  // check some
+  try {
+    const mik = new Mikrotik();
+    await mik.connect();
+    certificate = await mik.searchCertificate(
+      certificatBody.name,
+      EXCLUDE_CERTIFICATE_FOR_DISPLAY
+    );
+    if (!password) {
+      return res.status(400).json({
+        message: "Nu ati furnizat o parola pentru cheia privata.",
+      });
+    }
+
+    if (
+      !certificate ||
+      !certificate.fingerprint ||
+      certificate.fingerprint !== certificatBody?.fingerprint
+    ) {
+      return res.status(404).json({
+        message:
+          "Certificatul nu a fost gasit sau nu este valid, poate trebuie semnat inainte?",
+      });
+    }
+
+    const profile = await mik.searchProfile(
+      certificate.name,
+      EXCLUDE_PROFILES_FOR_DISPLAY
+    );
+
+    const company = {
+      host: process.env.OVPN_SERVER_HOST || "",
+      port: process.env.OVPN_SERVER_PORT || 0,
+      ca: process.env.OVPN_CA || "",
+    };
+    const options = process.env.OVPN_ADD_OPTIONS_TO_FILE?.split(",") || [];
+
+    await mik.exportCertificateEmployeeWithPassword({
+      id: certificate.id,
+      name: certificate.name,
+      password2: password,
+    });
+
+    const generatedFile = await mik.generateFileOpenVPN(
+      profile,
+      company,
+      options,
+      process.env.DIR_PATH_TO_DOWNLOAD
+    );
+    await mik.close();
+    if (fs.existsSync(generatedFile)) {
+      return res.sendFile(generatedFile);
+    }
+
+    return res.status(404).json({
+      message: "Fisierul generat .ovpn lipseste, incercati din nou.",
+    });
+  } catch (err) {
+    console.log(err);
+    return res.status(404).json({
+      message: "Certificatul nu a fost gasit.",
+    });
+  }
 });
 
 /**
@@ -73,17 +179,6 @@ router.get("/ovpns", async (req, res) => {
       message: err,
     });
   }
-});
-
-/**
- * Get ovpn of employee by id
- * Will not be used, it's not necessary, we keep simple
- * @id - string
- */
-router.get("/ovpns/:id", (req, res) => {
-  res.json({
-    message: "Unused",
-  });
 });
 
 /**

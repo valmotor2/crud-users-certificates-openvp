@@ -21,3 +21,7 @@ PRE: create the folders downalods/ovpn, in these folder will download the requir
 1. cd frontend
 2. npm install
 3. npm run start
+
+# Be aware!
+
+**This is only module, no auth, oath, no firewall or anything sutff.**

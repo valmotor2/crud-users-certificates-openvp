@@ -8,7 +8,6 @@ const config = {
   password: process.env.MIKROTIK_PASS,
 };
 
-const dirDownload = "../../../downloads/";
 const PREFIX_PRIVATE_KEY = process.env.PREFIX_PRIVATE_KEY || "pr_";
 
 class Mikrotik {
@@ -154,20 +153,23 @@ class Mikrotik {
 
   /**
    * generate file for openvpn with extension name_of_employee.ovpn
-   * @param {*} employee - informations about the employee
+   * @param {*} profile - informations about the employee
    * @param {*} company - information about the company where the employees will connect it
    * @param {*} optionsConfig - add options in .ovpn file
    */
   generateFileOpenVPN = async (
-    employee,
+    profile,
     company,
-    optionsConfig = [
-      "route 192.168.0.5 255.255.255.255",
-      "route 192.168.0.1 255.255.255.255",
-      'pull-filter ignore "route-gateway"',
-    ]
+    optionsConfig = [],
+    dirCertificate = ""
   ) => {
-    const dir = process.env.DIR || dirDownload;
+    if (!dirCertificate) {
+      throw new Error(
+        `The directory for downloading certificate is not defined,
+         don't forget to add, also, in this directory the opvn directory.`
+      );
+    }
+    const dir = dirCertificate;
 
     const appendToFile = [
       "client",
@@ -189,7 +191,7 @@ class Mikrotik {
       ...optionsConfig,
     ];
 
-    const files = await this.getPrivateCerts(employee, company.ca);
+    const files = await this.getPrivateCerts(profile, company.ca, dir);
 
     let contentOfFiles = {
       ca: "",
@@ -235,7 +237,7 @@ ${contentOfFiles.key}
     appendToFile.push(cert);
     appendToFile.push(key);
 
-    let fileForDownload = `${dirDownload}ovpn/${employee.name}.ovpn`;
+    let fileForDownload = `${dir}/ovpn/${profile.name}.ovpn`;
     fs.writeFileSync(fileForDownload, appendToFile.join("\n"));
 
     return fileForDownload;
@@ -247,9 +249,7 @@ ${contentOfFiles.key}
    * I don't have an solutions to get contents certs from API
    * So, the solutions for now is to read from FTP
    */
-  getPrivateCerts = async ({ name }, ca = "CA.key") => {
-    const dir = process.env.DIR || dirFolder;
-
+  getPrivateCerts = async ({ name }, ca, dir) => {
     const ftp = new basicFTP.Client();
 
     await ftp.access(config);
@@ -266,12 +266,13 @@ ${contentOfFiles.key}
     );
 
     if (filesRequested.length != 3)
-      throw new Error("We didn't found the certificates required.");
+      throw new Error(`We didn't found the certificates required, 
+      it must provided 3 certificates, we received: ${filesRequested.length} certificates.`);
 
     const filesDownloaded = [];
     for (let i = 0; i < filesRequested.length; i++) {
       const file = filesRequested[i];
-      const to = `${dir}${file.name}`;
+      const to = `${dir}/${file.name}`;
       await ftp.downloadTo(to, file.name);
       filesDownloaded.push(to);
       // clean on mikrotik router the files generated for employee
@@ -290,21 +291,27 @@ ${contentOfFiles.key}
    */
   searchProfile = async (name, exclude = []) => {
     const list = await this.getListOfOVPN(exclude);
-    const alreadyProfil = list.filter((each) => each.name === name);
-    return alreadyProfil.length ? alreadyProfil[0] : null;
+    const exist = list.filter((each) => each.name === name);
+    return exist.length ? exist[0] : null;
   };
 
   searchProfileById = async (id, exclude = []) => {
     const list = await this.getListOfOVPN(exclude);
-    const alreadyProfil = list.filter((each) => each.id === id);
-    return alreadyProfil.length ? alreadyProfil[0] : null;
+    const exist = list.filter((each) => each.id === id);
+    return exist.length ? exist[0] : null;
   };
 
   searchCertificate = async (name, exclude = []) => {
     const list = await this.getAllCertificates(exclude);
-    const alreadyCertificate = list.filter((each) => each.name === name);
+    const exist = list.filter((each) => each.name === name);
 
-    return alreadyCertificate.length ? alreadyCertificate[0] : null;
+    return exist.length ? exist[0] : null;
+  };
+
+  searchCertificateById = async (id, exclude = []) => {
+    const list = await this.getAllCertificates(exclude);
+    const exist = list.filter((each) => each.id === id);
+    return exist.length ? exist[0] : null;
   };
 }
 

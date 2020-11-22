@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { Form, Button, Alert } from "react-bootstrap";
 import { Link } from "react-router-dom";
 import axios from "axios";
-
+import { getErrorFromResponse } from "../../Helpers";
 import { URL_HOST } from "../../config";
 
 const INIT_EMPLOYEE = {
@@ -52,7 +52,7 @@ const Employee = () => {
         setSaved(true);
       })
       .catch((err) => {
-        setErr([err.message || "Error SYSTEM!"]);
+        setErr([getErrorFromResponse(err)]);
       })
       .finally(() => setLoading(false));
   };

@@ -8,22 +8,16 @@ import { BrowserRouter as Router, Switch, Route } from "react-router-dom";
 import Employees from "./screens/Employees";
 import Employee from "./screens/Employee";
 import Certificates from "./screens/Certificates";
-
+import Certificate from "./screens/Certificate";
 function App() {
   return (
     <Router>
       <Container style={{ marginTop: 50 }}>
         <Switch>
-          <Route exact path="/">
-            <Employees />
-          </Route>
-          <Route path="/ovpn/add">
-            <Employee />
-          </Route>
-
-          <Route path="/certificates">
-            <Certificates />
-          </Route>
+          <Route exact path="/" component={Employees} />
+          <Route exact path="/ovpn/add" component={Employee} />
+          <Route exact path="/certificates" component={Certificates} />
+          <Route exact path="/certificates/:id" component={Certificate} />
         </Switch>
       </Container>
     </Router>
