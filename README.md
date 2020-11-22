@@ -24,4 +24,4 @@ PRE: create the folders downalods/ovpn, in these folder will download the requir
 
 # Be aware!
 
-**This is only module, no auth, oath, no firewall or anything sutff.**
+**This is only module, no auth, oath, no firewall or anything stuff.**
