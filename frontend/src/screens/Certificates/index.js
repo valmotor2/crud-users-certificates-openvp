@@ -7,6 +7,33 @@ import { Button, Col, Table, Row, Alert } from "react-bootstrap";
 import Swal from "sweetalert2";
 
 const ListCertificates = ({ list, revoke, signCertificate, loading }) => {
+
+  const displayOption = (each) =>  {
+
+    if(each.revoked) return null
+    return (
+      each.fingerprint ? (
+        <Link
+          to={`/certificates/${each.id}`}
+          className="btn btn-primary"
+          style={{ marginRight: 5 }}
+        >
+          Genereaza .ovpn
+        </Link>
+      ) : (
+        <Button
+          size="sm"
+          disabled={loading}
+          style={{ marginRight: 5 }}
+          variant="info"
+          onClick={() => signCertificate(each)}
+        >
+          Semneaza certificatul
+        </Button>
+      )
+    )
+  }
+
   return (
     <Table striped bordered hover variant="dark">
       <thead>
@@ -26,25 +53,18 @@ const ListCertificates = ({ list, revoke, signCertificate, loading }) => {
             <td>{each.name}</td>
             <td>{each.invalidAfter}</td>
             <td style={{ textAlign: "center" }}>
-              {each.fingerprint ? (
-                <Link
-                  to={`/certificates/${each.id}`}
-                  className="btn btn-primary"
-                  style={{ marginRight: 5 }}
-                >
-                  Genereaza .ovpn
-                </Link>
-              ) : (
+              {displayOption(each)}
+              {each.revoked ? (
                 <Button
-                  size="sm"
-                  disabled={loading}
-                  style={{ marginRight: 5 }}
-                  variant="info"
-                  onClick={() => signCertificate(each)}
-                >
-                  Semneaza certificatul
-                </Button>
-              )}
+                size="sm"
+                disabled={true}
+                style={{ marginRight: 5 }}
+                onClick={() => {}}
+                variant="warning"
+              >
+                Revocat
+              </Button>
+              ): (
               <Button
                 size="sm"
                 disabled={loading}
@@ -54,6 +74,7 @@ const ListCertificates = ({ list, revoke, signCertificate, loading }) => {
               >
                 Revocare / Stergere
               </Button>
+              )}
             </td>
           </tr>
         ))}

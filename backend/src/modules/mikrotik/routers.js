@@ -156,7 +156,7 @@ router.post("/certificates/downloads", async (req, res) => {
  * @id - string
  */
 router.delete("/certificates/:id", (res, req) => {
-  const { id = "*0" } = res.parmas;
+  const { id = "*0" } = res.query;
 
   req.json({
     id,
@@ -235,7 +235,7 @@ router.post("/ovpn", async (req, res) => {
 });
 
 /**
- * @todo this is not used, I think
+ * @TODO
  */
 router.delete("/ovpn/:id", async (req, res) => {
   const { id } = req.params;
@@ -248,6 +248,8 @@ router.delete("/ovpn/:id", async (req, res) => {
       EXCLUDE_PROFILES_FOR_DISPLAY
     );
 
+    // @todo
+    /*
     const certificate = await mik.searchCertificate(
       profile.name,
       EXCLUDE_CERTIFICATE_FOR_DISPLAY
@@ -255,8 +257,9 @@ router.delete("/ovpn/:id", async (req, res) => {
 
     if (certificate) {
       // revoke it !
-      await mik.revokeCertificate(certificate);
+      mik.revokeCertificate(certificate).catch(err => console.log(err))
     }
+    */
     await mik.removeOVPN(profile);
     await mik.close();
     return res.json({ message: "deleted" });
