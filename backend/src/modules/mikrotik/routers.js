@@ -155,12 +155,29 @@ router.post("/certificates/downloads", async (req, res) => {
  * Delete or revoke the cert if is already signed
  * @id - string
  */
-router.delete("/certificates/:id", (res, req) => {
-  const { id = "*0" } = res.query;
+router.delete("/certificates/:id", async (req, res) => {
+  const { id = "*0" } = req.params;
 
-  req.json({
-    id,
-  });
+  
+  try {
+    const mik = new Mikrotik();
+    await mik.connect();
+
+    const certificate = await mik.searchCertificateById(
+      id,
+      EXCLUDE_CERTIFICATE_FOR_DISPLAY
+    );
+    await mik.revokeCertificate(certificate)
+    console.log(id, certificate)
+    await mik.close();    
+    return res.json(certificate);
+
+  } catch (err) {
+    console.log(err)
+    return res.status(404).json({
+      message: err,
+    });
+  }
 });
 
 /**

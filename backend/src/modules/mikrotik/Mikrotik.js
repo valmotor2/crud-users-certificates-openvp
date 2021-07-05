@@ -116,12 +116,12 @@ class Mikrotik {
           err.message &&
           err.message.indexOf("issued certificate can only be revoked") > -1
         ) {
-          return this._client.menu(
-            "/certificate",
-            exec("revoke", {
-              id,
-            })
-          );
+
+          return this._client.menu("/certificate").exec(`revoke`, {
+            name,
+            id,
+          });
+
         }
         throw err;
       });
