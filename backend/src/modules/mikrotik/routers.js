@@ -168,12 +168,10 @@ router.delete("/certificates/:id", async (req, res) => {
       EXCLUDE_CERTIFICATE_FOR_DISPLAY
     );
     await mik.revokeCertificate(certificate)
-    console.log(id, certificate)
     await mik.close();    
     return res.json(certificate);
 
   } catch (err) {
-    console.log(err)
     return res.status(404).json({
       message: err,
     });

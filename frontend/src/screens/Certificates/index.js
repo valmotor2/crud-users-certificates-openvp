@@ -114,12 +114,16 @@ const Certificates = () => {
         setLoadingConfig(true);
         axios
           .delete(`${URL_HOST}/certificates/${certificate.id}`)
-          .then(() =>
+          .then(() => {
             Swal.fire(
               "Revocat!",
               "Certificatul a fost revocat / sters.",
               "success"
             )
+
+            // reload list
+            loadAll();
+          }
           )
           .catch((err) => {
             Swal.fire("Error!", "Nu s-a putut revoca sau sterge.", "error");

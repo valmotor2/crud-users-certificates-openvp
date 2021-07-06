@@ -1,11 +1,15 @@
-const RouterOSClient = require("routeros-client").RouterOSClient;
+const RouterOS = require("routeros-client");
 const basicFTP = require("basic-ftp");
 const fs = require("fs");
 
+
+const RouterOSClient = RouterOS.RouterOSClient;
+const RouterOSAPI = RouterOS.RouterOSAPI;
+
 const config = {
-  host: process.env.MIKROTIK_HOST,
-  user: process.env.MIKROTIK_USER,
-  password: process.env.MIKROTIK_PASS,
+  host: process.env.HOST,
+  user: process.env.USERNAME,
+  password: process.env.PASSWORD,
 };
 
 const PREFIX_PRIVATE_KEY = process.env.PREFIX_PRIVATE_KEY || "pr_";
@@ -104,24 +108,27 @@ class Mikrotik {
    * @name - string
    * }
    */
-  revokeCertificate = ({ id, name }) =>
+  revokeCertificate =  ({ id, name , ...params}) =>
     this._client
       .menu("/certificate")
       .remove({
         name,
         id,
       })
-      .catch((err) => {
+      .catch(async (err) => {
         if (
           err.message &&
-          err.message.indexOf("issued certificate can only be revoked") > -1
+          err.message.indexOf("failure: issued certificate can only be revoked") > -1
         ) {
+          const rRouter = new RouterOSAPI(config)
 
-          return this._client.menu("/certificate").exec(`revoke`, {
-            name,
-            id,
-          });
+          await rRouter.connect()
+          await rRouter.write('/certificate/issued-revoke', `=.id=${id}`)
 
+          await rRouter.close()
+          return true;
+          // console.log(await RouterOSAPI.write())
+          // return await this._client.menu('/certificate').query('issued-revoke',name)
         }
         throw err;
       });
