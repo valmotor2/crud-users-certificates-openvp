@@ -14,6 +14,7 @@ function App() {
     // Don't forget this shitty at react build ...
     // motherfucker, I wasted 2 hours for this shitty for blank screen
     // If your app will not be a root ... put here as example /root/subroot
+    // <Router basename="/inHouse/vpn/">
     <Router basename="/">
       <Container style={{ marginTop: 50 }}>
         <Switch>
